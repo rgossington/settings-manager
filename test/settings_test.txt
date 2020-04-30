@@ -1,0 +1,15 @@
+[general]
+test_parse_bool1 = True
+test_parse_bool2 = T
+test_parse_bool3 = False
+test_parse_bool4 = F
+test_parse_int = 509
+
+[space-test]
+
+test_no_spaces=testing1
+
+test_spaces = testing2
+
+
+test_one_space =testing3
