@@ -1,15 +1,20 @@
 [general]
-test_parse_bool1 = True
-test_parse_bool2 = T
-test_parse_bool3 = False
-test_parse_bool4 = F
-test_parse_int = 509
+test = test value
+test_boolean = True
+test_boolean2 = False
+test_int = 590
+test_float = 1.989
 
-[space-test]
+[space_test]
 
-test_no_spaces=testing1
+test = test1
 
-test_spaces = testing2
+test_space = test2
 
 
-test_one_space =testing3
+test_two_spaces = test3
+
+
+
+[space_before_section]
+test = test value

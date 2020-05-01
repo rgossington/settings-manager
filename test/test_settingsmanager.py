@@ -5,56 +5,45 @@ sys.path.append("../")
 import unittest
 from settingsmanager import SettingsManager
 
-reader = SettingsManager("settings_test.txt")
+settings = SettingsManager("settings_test.txt")
 
 
 class TestConfigReader(unittest.TestCase):
-    def test_heading_exists(self):
-        #### Test true
-        exists = reader.heading_exists("general")
-        self.assertEqual(exists, True)
+    def test_standard_read(self):
+        value = settings.general.test
+        self.assertEqual(value, "test value")
 
-        #### Test false
-        exists = reader.heading_exists("test")
-        self.assertEqual(exists, False)
+        value = settings.general.test_boolean
+        self.assertEqual(value, True)
 
-    def test_read_entry(self):
-        #### Test no spaces
-        entry = reader.read_entry("space-test", "test_no_spaces")
-        self.assertEqual(entry, "testing1")
+        value = settings.general.test_int
+        self.assertEqual(value, 590)
 
-        #### Test spaces
-        entry = reader.read_entry("space-test", "test_spaces")
-        self.assertEqual(entry, "testing2")
+        value = settings.general.test_float
+        self.assertEqual(value, 1.989)
 
-        #### Test 1 space1
-        entry = reader.read_entry("space-test", "test_one_space")
-        self.assertEqual(entry, "testing3")
+        value = settings.space_test.test_two_spaces
+        self.assertEqual(value, "test3")
 
-        #### Test parse boolean1
-        entry = reader.read_entry("general", "test_parse_bool1", parse_bool=True)
-        self.assertEqual(entry, True)
+        value = settings.space_before_section.test
+        self.assertEqual(value, "test value")
 
-        #### Test parse boolean2
-        entry = reader.read_entry("general", "test_parse_bool2", parse_bool=True)
-        self.assertEqual(entry, True)
+    def test_new_section(self):
+        settings.add_section("new_section")
+        self.assertEqual(settings.new_section._name, "new_section")
 
-        #### Test parse boolean3
-        entry = reader.read_entry("general", "test_parse_bool3", parse_bool=True)
-        self.assertEqual(entry, False)
+        settings.new_section.add_entry("new_key", "new value")
+        self.assertEqual(settings.new_section.new_key, "new value")
 
-        #### Test parse boolean4
-        entry = reader.read_entry("general", "test_parse_bool4", parse_bool=True)
-        self.assertEqual(entry, False)
+        settings.add_entry("new_key2", "new value2", settings.new_section)
+        self.assertEqual(settings.new_section.new_key2, "new value2")
 
-        #### Test parse int
-        entry = reader.read_entry("general", "test_parse_int", parse_int=True)
-        self.assertEqual(entry, 509)
+    def test_add_to_exsiting_section(self):
+        settings.general.add_entry("new_general_key", "new general value")
+        self.assertEqual(settings.general.new_general_key, "new general value")
 
-        #### Test default
-        entry = reader.read_entry("general", "test_default", default="default")
-        self.assertEqual(entry, "default")
-
+        settings.add_entry("new_general_key2", "new general value2", settings.general)
+        self.assertEqual(settings.general.new_general_key2, "new general value2")
 
 if __name__ == "__main__":
     unittest.main()
