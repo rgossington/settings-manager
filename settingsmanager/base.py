@@ -1,14 +1,24 @@
 import re
 
+
 class BaseClass:
     def _get_keys(self):
-        attrs = self._get_attributes()
+        attrs = self.get_attributes()
         return attrs.keys()
 
-    def _get_attributes(self):
+    def get_attributes(self):
         attrs = self.__dict__
         attrs_filtered = {k: v for k, v in attrs.items() if not k.startswith("_")}
         return attrs_filtered
+
+    @staticmethod
+    def convert_to_list(string):
+        items = []
+
+        if string is not None and len(string) > 0:
+            items = re.split(r", |,", string)
+
+        return items
 
     @staticmethod
     def _is_key_or_section_name_valid(name):

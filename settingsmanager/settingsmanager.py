@@ -14,6 +14,9 @@ class Section(BaseClass):
 
             setattr(self, key, value)
 
+    def get_name(self):
+        return self._name
+
 
 class SettingsManager(BaseClass):
     def __init__(self, file_path, parse_bool=True, parse_int=True, parse_float=True):
@@ -76,10 +79,10 @@ class SettingsManager(BaseClass):
         if new_file_path is None:
             new_file_path = self._file_path
 
-        sections = self._get_sections()
+        sections = self.get_sections()
 
         # Iterate through each section
-        for k, section in sections.items():
+        for section in sections:
             section_index = section._start_index_in_file
 
             # If it is missing, add to the raw file lines
@@ -89,7 +92,7 @@ class SettingsManager(BaseClass):
                 self._lines_raw.append(f"[{section._name}")
 
             # Update existing keys in the section and check for missing ones
-            section_attrs_to_add = section._get_attributes()
+            section_attrs_to_add = section.get_attributes()
 
             for index in range(section._start_index_in_file + 1, section._end_index_in_file):
                 line = self._lines_cleaned[index]
@@ -109,6 +112,31 @@ class SettingsManager(BaseClass):
         # Save lines
         with open(new_file_path, "w") as file:
             file.writelines(self._lines_raw)
+
+    def get_sections(self):
+        attrs = self.get_attributes()
+        return [v for k, v in attrs.items() if isinstance(v, Section)]
+
+    def get_section(self, section_name):
+        sections = self.get_sections()
+
+        for section in sections:
+            if section.get_name() == section_name:
+                return section
+
+        return None
+
+    def set_value(self, section, key, value):
+        if isinstance(section, str):
+            section = self.get_section(section)
+
+        # todo: handle if key or section does not exist
+        setattr(section, key, value)
+
+    def has_changed(self):
+        lines_before = self._lines_cleaned
+        self.refresh()
+        return lines_before != self._lines_cleaned
 
     def _read_file(self):
         try:
@@ -144,10 +172,6 @@ class SettingsManager(BaseClass):
 
         section._end_index_in_file = end_index
 
-    def _get_sections(self):
-        attrs = self._get_attributes()
-        return {k: v for k, v in attrs.items() if isinstance(v, Section)}
-
     def _insert_line_into_section(self, section, value):
         # Insert into this section
         index = section._end_index_in_file + 1
@@ -155,9 +179,9 @@ class SettingsManager(BaseClass):
         section._end_index_in_file += 1
 
         # Shift later sections
-        sections = self._get_sections()
+        sections = self.get_sections()
 
-        for k, s in sections.items():
-            if s._start_index_in_file >= index:
-                s._start_index_in_file += 1
-                s._end_index_in_file += 1
+        for section in sections:
+            if section._start_index_in_file >= index:
+                section._start_index_in_file += 1
+                section._end_index_in_file += 1
