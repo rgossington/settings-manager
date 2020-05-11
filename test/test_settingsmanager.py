@@ -44,15 +44,26 @@ class TestSettingsManager(unittest.TestCase):
         #### Add to existing section
         # add to section instance
         self.settings.general.add_entry("new_key", "new value")
+        self.assertEqual(hasattr(self.settings.general, "new_key"), True)
         self.assertEqual(self.settings.general.new_key, "new value")
 
-        # add to settings instance, with section nam
+        # add to settings instance, with section instance
         self.settings.add_entry("new_key2", "new value2", self.settings.general)
+        self.assertEqual(hasattr(self.settings.general, "new_key2"), True)
         self.assertEqual(self.settings.general.new_key2, "new value2")
+
+        # add to settings instance, with section name
+        self.settings.add_entry("new_key3", "new value3", "general")
+        self.assertEqual(hasattr(self.settings.general, "new_key3"), True)
+        self.assertEqual(self.settings.general.new_key3, "new value3")
 
         #### Add to non-existing section
         self.assertRaises(ValueError, self.settings.add_entry, *["new_key", "new_value", None])
         self.assertRaises(AttributeError, self.settings.add_entry, *["new_key", "new_value", "section_does_not_exist"])
+
+        #### Add an already existing key
+        self.assertRaises(AttributeError, self.settings.general.add_entry, *["new_key", "attempt to re-add"])
+        self.assertRaises(AttributeError, self.settings.add_entry, *["new_key2", "attempt to re-add", "general"])
 
     def test_refresh(self):
         #### Make changes and then reset to normal file
@@ -71,7 +82,7 @@ class TestSettingsManager(unittest.TestCase):
         with open("copied_settings_test.txt") as file: lines_after = file.readlines()
         self.assertListEqual(lines_before, lines_after)
 
-        #### Test file_path shift after save
+        #### Test file_path change after save
         self.assertEqual(self.settings._file_path, "copied_settings_test.txt")
 
         #### Save an edited copy
@@ -80,6 +91,7 @@ class TestSettingsManager(unittest.TestCase):
         self.settings.space_test.add_entry("new_key_spaces", "new value spaces")
         self.settings.add_section("new_section")
         self.settings.add_entry("key", "value", "new_section")
+        self.settings.add_entry("key2", "value2", "new_section")
 
         self.settings.save("edited_settings_test.txt")
         with open("settings_test.txt") as file: lines_before = file.readlines()
@@ -91,6 +103,14 @@ class TestSettingsManager(unittest.TestCase):
         self.assertEqual(lines_after[16], "new_key_spaces = new value spaces\n")
         self.assertEqual(lines_after[23], "[new_section]\n")
         self.assertEqual(lines_after[24], "key = value\n")
+        self.assertEqual(lines_after[25], "key2 = value2\n")
+
+        #### Save over an edited copy
+        self.settings.add_entry("key3", "value3", "new_section")
+        self.settings.save("edited_settings_test.txt")
+        with open("edited_settings_test.txt") as file: lines_after = file.readlines()
+
+        self.assertEqual(lines_after[26], "key3 = value3\n")
 
         #### Clean up files
         os.remove("copied_settings_test.txt")
@@ -101,6 +121,32 @@ class TestSettingsManager(unittest.TestCase):
         section_names = [section.get_name() for section in sections]
         expected_section_names = ["general", "space_test", "space_before_section"]
         self.assertListEqual(section_names, expected_section_names)
+
+    def test_get_section(self):
+        section = self.settings.get_section("general")
+        self.assertEqual(section.get_name(), "general")
+
+        #### None existant section
+        self.assertRaises(AttributeError, self.settings.get_section, "does_not_exist")
+
+    def test_set_value(self):
+        self.settings.set_value("test", "changed value", "general")
+        self.assertEqual(self.settings.general.test, "changed value")
+
+        self.settings.set_value("test_boolean", False, self.settings.general)
+        self.assertEqual(self.settings.general.test_boolean, False)
+
+        self.settings.general.set_value("test_int", 999)
+        self.assertEqual(self.settings.general.test_int, 999)
+
+        #### New value
+        self.settings.set_value("new_key", "new value", "general")
+        self.assertEqual(self.settings.general.new_key, "new value")
+
+        #### Test errors
+        self.assertRaises(ValueError, self.settings.general.set_value, *[0, 0])
+        self.assertRaises(AttributeError, self.settings.set_value, *["new_key", "new value", "does_not_exist"])
+
 
 
 if __name__ == "__main__":

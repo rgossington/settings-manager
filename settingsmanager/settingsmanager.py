@@ -12,10 +12,14 @@ class Section(BaseClass):
             if hasattr(self, key):
                 raise AttributeError(f"Duplicate key '{key}' in section '{self._name}'")
 
-            setattr(self, key, value)
+            self.set_value(key, value)
 
     def get_name(self):
         return self._name
+
+    def set_value(self, key, value):
+        if self._is_key_or_section_name_valid(key):
+            setattr(self, key, value)
 
 
 class SettingsManager(BaseClass):
@@ -37,19 +41,7 @@ class SettingsManager(BaseClass):
             return section
 
     def add_entry(self, key, value, section):
-        if section is None:
-            raise ValueError(f"Entry {key} does not have a section")
-
-        if isinstance(section, str):
-            if hasattr(self, section):
-                section = getattr(self, section)
-            else:
-                raise AttributeError(f"{section} was not found in the settings instance")
-
-        if not isinstance(section, Section):
-            raise ValueError("A valid section instance was not provided. "
-                             "Create a section first using create_section")
-
+        section = self.get_section(section)
         section.add_entry(key, value)
 
     def refresh(self):
@@ -119,21 +111,25 @@ class SettingsManager(BaseClass):
         attrs = self.get_attributes()
         return [v for k, v in attrs.items() if isinstance(v, Section)]
 
-    def get_section(self, section_name):
+    def get_section(self, section):
+        if isinstance(section, Section):
+            return section
+        elif isinstance(section, str):
+            section_name = section
+        else:
+            raise ValueError(f"Section parameter must be a string (ie the section name), not {type(section)}.")
+
         sections = self.get_sections()
 
         for section in sections:
             if section.get_name() == section_name:
                 return section
 
-        return None
+        raise AttributeError(f"Section '{section_name}' not found.")
 
-    def set_value(self, section, key, value):
-        if isinstance(section, str):
-            section = self.get_section(section)
-
-        # todo: handle if key or section does not exist
-        setattr(section, key, value)
+    def set_value(self, key, value, section):
+        section = self.get_section(section)
+        section.set_value(key, value)
 
     def has_changed(self):
         lines_before = self._lines_cleaned
