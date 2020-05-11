@@ -40,12 +40,15 @@ class SettingsManager(BaseClass):
         if section is None:
             raise ValueError(f"Entry {key} does not have a section")
 
+        if isinstance(section, str):
+            if hasattr(self, section):
+                section = getattr(self, section)
+            else:
+                raise AttributeError(f"{section} was not found in the settings instance")
+
         if not isinstance(section, Section):
             raise ValueError("A valid section instance was not provided. "
-                                 "Create a section first using create_section")
-
-        if not hasattr(self, section._name):
-            raise AttributeError(f"{section._name} was not found in the settings instance")
+                             "Create a section first using create_section")
 
         section.add_entry(key, value)
 
@@ -79,18 +82,17 @@ class SettingsManager(BaseClass):
         if new_file_path is None:
             new_file_path = self._file_path
 
+        self._file_path = new_file_path
         sections = self.get_sections()
 
-        # Iterate through each section
+        # Add new sections to the file lines
         for section in sections:
-            section_index = section._start_index_in_file
-
             # If it is missing, add to the raw file lines
-            if section_index is None:
-                section._start_index_in_file = len(self._lines_raw)
-                section._end_index_in_file = section._start_index_in_file + 1
-                self._lines_raw.append(f"[{section._name}")
+            if section._start_index_in_file is None:
+                self._insert_new_section_line(section)
 
+        # Iterate through each section and add/update keys
+        for section in sections:
             # Update existing keys in the section and check for missing ones
             section_attrs_to_add = section.get_attributes()
 
@@ -150,12 +152,17 @@ class SettingsManager(BaseClass):
         lines_cleaned = []
 
         for line in self._lines_raw:
-            line_cleaned = line.rstrip()
-            line_cleaned = line_cleaned.replace("= ", "=")
-            line_cleaned = line_cleaned.replace(" =", "=")
-            lines_cleaned.append(line_cleaned)
+            lines_cleaned.append(self._clean_line(line))
 
         self._lines_cleaned = lines_cleaned
+
+    @staticmethod
+    def _clean_line(line_raw):
+        line_cleaned = line_raw.rstrip()
+        line_cleaned = line_cleaned.replace("= ", "=")
+        line_cleaned = line_cleaned.replace(" =", "=")
+
+        return line_cleaned
 
     def _clear_attributes(self):
         keys = self._get_keys()
@@ -174,8 +181,9 @@ class SettingsManager(BaseClass):
 
     def _insert_line_into_section(self, section, value):
         # Insert into this section
-        index = section._end_index_in_file + 1
+        index = section._end_index_in_file
         self._lines_raw.insert(index, value)
+        self._lines_cleaned.insert(index, self._clean_line(value))
         section._end_index_in_file += 1
 
         # Shift later sections
@@ -185,3 +193,13 @@ class SettingsManager(BaseClass):
             if section._start_index_in_file >= index:
                 section._start_index_in_file += 1
                 section._end_index_in_file += 1
+
+    def _insert_new_section_line(self, section):
+        section_name = section.get_name()
+        self._lines_raw.append("\n")
+        self._lines_cleaned.append("")
+        self._lines_raw.append(f"[{section_name}]\n")
+        self._lines_cleaned.append(f"[{section_name}]")
+
+        section._start_index_in_file = len(self._lines_raw) - 1
+        section._end_index_in_file = section._start_index_in_file + 1
