@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='SettingsManager',
-      version='0.2.0dev',
+      version='0.2.0',
       description='Settings File Manager',
       author='Rob Gossington',
       author_email='rgossington@gmail.com',
