@@ -1,7 +1,10 @@
-from distutils.core import setup
+from setuptools import setup
 
-setup(name='SettingsManager',
-      version='0.2.0',
+VERSION = ""
+exec(open('settingsmanager/version.py').read())
+
+setup(name='settingsmanager',
+      version=VERSION,
       description='Settings File Manager',
       author='Rob Gossington',
       author_email='rgossington@gmail.com',
