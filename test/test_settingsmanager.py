@@ -4,7 +4,9 @@ sys.path.append("../")
 
 import unittest
 from settingsmanager import SettingsManager
+from settingsmanager import Section
 import os
+import shutil
 
 
 class TestSettingsManager(unittest.TestCase):
@@ -147,6 +149,91 @@ class TestSettingsManager(unittest.TestCase):
         self.assertRaises(ValueError, self.settings.general.set_value, *[0, 0])
         self.assertRaises(AttributeError, self.settings.set_value, *["new_key", "new value", "does_not_exist"])
 
+    def test_refresh_and_has_changed(self):
+        #### No change
+        shutil.copy("settings_test.txt", "settings_test_has_changed.txt")
+        settings_has_changed = SettingsManager("settings_test_has_changed.txt")
+        self.assertEqual(settings_has_changed.refresh_and_has_changed(), False)
+
+        #### Edited key
+        with open("settings_test_has_changed.txt", "r") as file: lines = file.readlines()
+        lines[1] = "test = edited value\n"
+        with open("settings_test_has_changed.txt", "w") as file: file.writelines(lines)
+        self.assertEqual(settings_has_changed.refresh_and_has_changed(), True)
+
+        #### Added section and key
+        lines.append("\n")
+        lines.append("[new_section]\n")
+        lines.append("new_key = new value\n")
+        with open("settings_test_has_changed.txt", "w") as file: file.writelines(lines)
+        self.assertEqual(settings_has_changed.refresh_and_has_changed(), True)
+
+        #### Tidy files
+        os.remove("settings_test_has_changed.txt")
+
+    def test_read_file(self):
+        #### Reset line lists
+        self.settings._lines_raw = None
+        self.settings._lines_cleaned = None
+        self.settings._read_file()
+
+        #### Spot check variables
+        self.assertEqual(self.settings._lines_raw[0], "[general]\n")
+        self.assertEqual(self.settings._lines_cleaned[0], "[general]")
+
+        self.assertEqual(self.settings._lines_raw[11], "test_space = test2\n")
+        self.assertEqual(self.settings._lines_cleaned[11], "test_space=test2")
+
+        self.assertEqual(len(self.settings._lines_raw), 20)
+        self.assertEqual(len(self.settings._lines_cleaned), 20)
+
+    def test_clean_file_lines(self):
+        self.assertEqual(self.settings._lines_cleaned[1], "test=test value")
+
+    def test_clear_attributes(self):
+        self.settings._clear_attributes()
+        self.assertEqual(hasattr(self.settings, "general"), False)
+        self.assertEqual(hasattr(self.settings, "space_test"), False)
+        self.assertEqual(hasattr(self.settings, "space_before_section"), False)
+
+    def test_set_section_end_index(self):
+        self.assertEqual(self.settings.general._end_index_in_file, 6)
+        self.assertEqual(self.settings.space_test._end_index_in_file, 15)
+        self.assertEqual(self.settings.space_before_section._end_index_in_file, 20)
+
+    def test_insert_line_into_section(self):
+        #### Insert into first section
+        self.settings._insert_line_into_section(self.settings.general, "test_line\n")
+        self.assertEqual(self.settings.general._start_index_in_file, 0)
+        self.assertEqual(self.settings.general._end_index_in_file, 7)
+        self.assertEqual(self.settings.space_test._start_index_in_file, 8)
+        self.assertEqual(self.settings.space_test._end_index_in_file, 16)
+        self.assertEqual(self.settings.space_before_section._start_index_in_file, 19)
+        self.assertEqual(self.settings.space_before_section._end_index_in_file, 21)
+
+        #### Insert into later section
+        self.settings._insert_line_into_section(self.settings.space_test, "test_line\n")
+        self.assertEqual(self.settings.general._start_index_in_file, 0)
+        self.assertEqual(self.settings.general._end_index_in_file, 7)
+        self.assertEqual(self.settings.space_test._start_index_in_file, 8)
+        self.assertEqual(self.settings.space_test._end_index_in_file, 17)
+        self.assertEqual(self.settings.space_before_section._start_index_in_file, 20)
+        self.assertEqual(self.settings.space_before_section._end_index_in_file, 22)
+
+    def test_insert_new_section_line(self):
+        new_section = Section("new_section")
+        self.settings._insert_new_section_line(new_section)
+
+        self.assertEqual(new_section._start_index_in_file, 21)
+        self.assertEqual(new_section._end_index_in_file, 22)
+        self.assertEqual(self.settings._lines_raw[20], "\n")
+        self.assertEqual(self.settings._lines_cleaned[20], "")
+        self.assertEqual(self.settings._lines_raw[21], "[new_section]\n")
+        self.assertEqual(self.settings._lines_cleaned[21], "[new_section]")
+
+    def test_get_name(self):
+        self.assertEqual(self.settings.general.get_name(), "general")
+        self.assertEqual(self.settings.space_test.get_name(), "space_test")
 
 
 if __name__ == "__main__":

@@ -131,7 +131,7 @@ class SettingsManager(BaseClass):
         section = self.get_section(section)
         section.set_value(key, value)
 
-    def has_changed(self):
+    def refresh_and_has_changed(self):
         lines_before = self._lines_cleaned
         self.refresh()
         return lines_before != self._lines_cleaned
@@ -151,14 +151,6 @@ class SettingsManager(BaseClass):
             lines_cleaned.append(self._clean_line(line))
 
         self._lines_cleaned = lines_cleaned
-
-    @staticmethod
-    def _clean_line(line_raw):
-        line_cleaned = line_raw.rstrip()
-        line_cleaned = line_cleaned.replace("= ", "=")
-        line_cleaned = line_cleaned.replace(" =", "=")
-
-        return line_cleaned
 
     def _clear_attributes(self):
         keys = self._get_keys()
