@@ -98,3 +98,8 @@ By default, all booleans, integers and floats will be parsed. These can be disab
 ```
 settings = SettingsManager(file_path, parse_bool=False, parse_int=False, parse_float=False)
 ```
+
+## Planned work
+
+- Prevention of adding multiple sections with the same same
+- Section and key removal methods
