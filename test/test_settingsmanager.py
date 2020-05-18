@@ -13,6 +13,23 @@ class TestSettingsManager(unittest.TestCase):
     def setUp(self):
         self.settings = SettingsManager("settings_test.txt")
 
+    def test_new_file(self):
+        # Create file
+        new_settings = SettingsManager("new_file.txt")
+        file_exists = os.path.exists("new_file.txt")
+        self.assertEqual(file_exists, True)
+
+        # Add settings (save method is tested properly later)
+        new_settings.add_section("new_section")
+        new_settings.add_entry("new_key", "new value", "new_section")
+        new_settings.save()
+
+        file_exists = os.path.exists("new_file.txt")
+        self.assertEqual(file_exists, True)
+
+        # clean up file
+        os.remove("new_file.txt")
+
     def test_standard_read(self):
         value = self.settings.general.test
         self.assertEqual(value, "test value")

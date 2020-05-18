@@ -142,7 +142,11 @@ class SettingsManager(BaseClass):
                 self._lines_raw = file.readlines()
                 self._clean_file_lines()
         except FileNotFoundError:
-            raise FileNotFoundError(f"Settings file not found in {self._file_path}")
+            # creates file if not found
+            with open(self._file_path, "w"):
+                self._lines_raw = []
+                self._clean_file_lines()
+                pass
 
     def _clean_file_lines(self):
         lines_cleaned = []
